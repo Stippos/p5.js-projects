@@ -1,97 +1,146 @@
-var g = 0.00001;
+var g = 0.10;
 var scl = 1;
 var newPlanet = false;
 var planetSize = 0;
+var dt = 1;
+var stopped = false;
+var damp = 1;
 
 var p1 = {
-  x: 320,
-  y: 240,
+  x:  window.innerWidth / 2,
+  y:  window.innerHeight / 2,
   vx: 0,
   vy: 0,
-  m: 200,
-  c: '#fae'
+  r: 20,
+  c: 'red'
 };
 
 var p2 = {
-  x: 100,
-  y: 240,
-  vx: 0,
-  vy: -19,
-  m: 2,
-  c: 255
+  x:  window.innerWidth / 2,
+  y:  window.innerHeight / 2 + 50,
+  vx: 5.5,
+  vy: 0,
+  r: 1,
+  c: 'red'
 };
 
 var p3 = {
-  x: 320,
-  y: 280,
-  vx: 6,
+  x:  window.innerWidth / 2,
+  y:  window.innerHeight / 2 - 350,
+  vx: -1,
   vy: 0,
-  m: 7,
-  c: 'blue'
+  r: 5,
+  c: 'yellow'
 };
 
 var p4 = {
-  x: 400,
-  y: 240,
+  x:  window.innerWidth / 2 + 350,
+  y:  window.innerHeight / 2,
   vx: 0,
-  vy: -30,
-  m: 2,
+  vy: -1.5,
+  r: 3,
+  c: 255
+};
+
+var p5 = {
+  x:  window.innerWidth / 2 - 30,
+  y:  window.innerHeight / 2,
+  vx: 0,
+  vy: 7,
+  r: 3,
   c: 255
 };
 
 
 
-var ps = [p1, p2];
+var ps = [p1, p2, p3, p4, p5];
 
 function setup() {
-  width = 1200;
-  height = 1200;
-  createCanvas(width, height);
-  frameRate(30);
+  createCanvas(windowWidth, windowHeight);
+  frameRate(60);
+
+  //gui = createGui('p5.gui');
+  //gui.addGlobals('g', 'dt');
+
+  //noLoop();
 }
 
 function draw(){
 
-  background(255);
+  //background(255);
 
   for(var i = 0; i < ps.length; i++){
     fx = 0;
     fy = 0;
     for(var j = 0; j < ps.length; j++){
       if(j != i){
-        forces = f(ps[i].m, ps[i].x, ps[i].y, ps[j].m, ps[j].x, ps[j].y);
+        forces = f(ps[i], ps[j]);
         fx += forces[0];
         fy += forces[1];
       }
     }
-    ps[i].vx += fx / ps[i].m;
-    ps[i].vy += fy / ps[i].m;
+    ps[i].vx += fx / pow(ps[i].r, 3) * dt;
+    ps[i].vy += fy / pow(ps[i].r, 3) * dt;
+    ps[i].vx = ps[i].vx * damp;
+    ps[i].vy = ps[i].vy * damp;
+
   }
 
   for(i = 0; i < ps.length; i++){
-    ps[i].x += ps[i].vx;
-    ps[i].y += ps[i].vy;
+    //ps[i].x += ps[i].vx * dt;
+    ps[i].y += ps[i].vy * dt;
+    ps[i].x += ps[i].vx * dt;
+
+    // if((ps[i].y < ps[i].r / 2.0) || (ps[i].y > windowHeight - ps[i].r / 2.0)){
+    //   ps[i].vy = -ps[i].vy
+    // }
+    //
+    // if((ps[i].x < ps[i].r / 2.0) || (ps[i].x > windowWidth - ps[i].r / 2.0)){
+    //   ps[i].vx = -ps[i].vx
+    // }
+    //
+    //
+    // ps[i].y = Math.min(Math.max(ps[i].y, ps[i].r / 2.0), windowHeight - ps[i].r / 2.0);
+    // ps[i].x = Math.min(Math.max(ps[i].x, ps[i].r / 2.0), windowWidth - ps[i].r / 2.0);
+
     //ps = ps.filter(p => eat(ps[i], p));
   }
+  ps[0].y = windowHeight / 2;
+  ps[0].x = windowWidth / 2;
 
+  for(i = 0; i < ps.length - 1; i++){
+    for(j = i + 1; j < ps.length; j++){
+      var r = Math.sqrt(pow(ps[i].x - ps[j].x, 2) + pow(ps[i].y - ps[j].y, 2));
+      if(r < (ps[i].r + ps[j].r) / 2){
+        var vx = (ps[i].vx * pow(ps[i].r, 3) + ps[j].vx * pow(ps[j].r, 3)) / (pow(ps[i].r, 3) + pow(ps[j].r, 3));
+        var vy = (ps[i].vy * pow(ps[i].r, 3) + ps[j].vy * pow(ps[j].r, 3)) / (pow(ps[i].r, 3) + pow(ps[j].r, 3));
+        ps[i].vx = vx * 0.9;
+        ps[i].vy = vy * 0.9;
+        ps[j].vx = vx * 0.9;
+        ps[j].vy = vy * 0.9;
+      }
+
+    }
+  }
 
   for(i = 0; i < ps.length; i++){
     fill(ps[i].c);
-    ellipse(ps[i].x, ps[i].y, ps[i].m * scl, ps[i].m * scl);
+    //stroke(ps[i].c);
+    ellipse(ps[i].x, ps[i].y, ps[i].r, ps[i].r);
   }
 
   if(mouseIsPressed){
     newPlanet = true;
     planetSize += 1;
-    ellipse(mouseX, mouseY, planetSize * scl, planetSize * scl);
+    ellipse(mouseX, mouseY, planetSize, planetSize * scl);
   }else if(newPlanet){
     ps.push({
       x: mouseX,
       y: mouseY,
       vx: (random() - 0.5) * 3,
       vy: (random() - 0.5) * 3,
-      m: planetSize,
-      c: random()*255
+      r: planetSize,
+      c: color(random()*255, random()*255, random()*255)
     });
     newPlanet = false;
     planetSize = 0;
@@ -99,32 +148,51 @@ function draw(){
 
 }
 
-function f(m1, x1, y1, m2, x2, y2){
-  var r = Math.sqrt((x1 - x2)^2 + (y2 - y1)^2);
-  var force = g * m1 * m2 / r^3;
+function f(p1, p2){
+  var r = Math.sqrt(pow((p1.x - p2.x),2) + pow((p1.y - p2.y), 2));
 
-  var angle = Math.atan(abs(y1 - y2) / abs(x1 - x2));
+  var force = g * pow(p1.r, 3)  * pow(p2.r, 3)  / pow(r, 2);
+
+  if(r < (p1.r + p2.r) / 2){
+    force = force;
+  }
+
+  var angle = Math.atan(abs(p1.y - p2.y) / abs(p1.x - p2.x));
   var fx = Math.cos(angle) * force;
   var fy = -Math.sin(angle) * force;
 
-  if(x1 > x2){
+  if(p1.x > p2.x){
     fx = -fx;
   }
-  if(y1 < y2){
+  if(p1.y < p2.y){
     fy = -fy;
   }
+
   return [fx, fy];
 }
 
 function eat(p1, p2){
   var r = Math.sqrt((p1.x - p2.x)^2 + (p1.y - p2.y)^2);
-  console.log(r);
-  console.log(p1.m);
-  console.log((r < (p1.m * scl / 2)) && (p1.m > p2.m));
-  if(((r < (p1.m * scl / 2)) && (p1.m > p2.m))){
+  //console.log(r);
+  //console.log(p1.r);
+  //console.log((r < (p1.r * scl / 2)) && (p1.r > p2.r));
+  if(((r < (p1.r * scl / 2)) && (p1.r > p2.r))){
     return false;
   }else{
     return true;
   }
 
+  function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+  }
+
+  function keyPressed(){
+    if(keyCode === UP_ARROW && !stopped){
+      noLoop();
+      stopped = true;
+    }else if(keyCode === UP_ARROW && stopped){
+      loop();
+      stopped = false;
+    }
+  }
 }
