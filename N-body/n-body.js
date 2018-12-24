@@ -5,8 +5,11 @@ var planetSize = 0;
 var dt = 1;
 var stopped = false;
 var damp = 1;
+var history;
+var history_lenght = 100;
 
 var p1 = {
+  name: "Sun",
   x:  window.innerWidth / 2,
   y:  window.innerHeight / 2,
   vx: 0,
@@ -16,6 +19,7 @@ var p1 = {
 };
 
 var p2 = {
+  name: "Mercurius",
   x:  window.innerWidth / 2,
   y:  window.innerHeight / 2 + 50,
   vx: 5.5,
@@ -25,6 +29,7 @@ var p2 = {
 };
 
 var p3 = {
+  name: "Earth",
   x:  window.innerWidth / 2,
   y:  window.innerHeight / 2 - 350,
   vx: -1,
@@ -34,6 +39,7 @@ var p3 = {
 };
 
 var p4 = {
+  name: "Mars",
   x:  window.innerWidth / 2 + 350,
   y:  window.innerHeight / 2,
   vx: 0,
@@ -43,6 +49,7 @@ var p4 = {
 };
 
 var p5 = {
+  name: "Comet",
   x:  window.innerWidth / 2 - 30,
   y:  window.innerHeight / 2,
   vx: 0,
@@ -58,7 +65,7 @@ var ps = [p1, p2, p3, p4, p5];
 function setup() {
   createCanvas(windowWidth, windowHeight);
   frameRate(60);
-
+  history = [[]];
   //gui = createGui('p5.gui');
   //gui.addGlobals('g', 'dt');
 
@@ -67,7 +74,7 @@ function setup() {
 
 function draw(){
 
-  //background(255);
+  background(1);
 
   for(var i = 0; i < ps.length; i++){
     fx = 0;
@@ -88,6 +95,9 @@ function draw(){
 
   for(i = 0; i < ps.length; i++){
     //ps[i].x += ps[i].vx * dt;
+
+    history[frameCount - 1 % history_lenght] = ps;
+
     ps[i].y += ps[i].vy * dt;
     ps[i].x += ps[i].vx * dt;
 
@@ -123,18 +133,27 @@ function draw(){
     }
   }
 
+  console.log(history[0][0])
+  //DRAW PLANETS
   for(i = 0; i < ps.length; i++){
     fill(ps[i].c);
     //stroke(ps[i].c);
     ellipse(ps[i].x, ps[i].y, ps[i].r, ps[i].r);
+    text(ps[i].name, ps[i].x + ps[i].r, ps[i].y);
+
+    for(j = 0; j < history.length; j++){
+      ellipse(history[j][i].x, history[j][i].y, history[j][i].r);
+    }
   }
 
+  //ADD NEW PLANETS
   if(mouseIsPressed){
     newPlanet = true;
     planetSize += 1;
     ellipse(mouseX, mouseY, planetSize, planetSize * scl);
   }else if(newPlanet){
     ps.push({
+      name: "Planet " + String(ps.length),
       x: mouseX,
       y: mouseY,
       vx: (random() - 0.5) * 3,
