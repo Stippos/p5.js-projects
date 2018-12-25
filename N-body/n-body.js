@@ -1,13 +1,3 @@
-var g = 0.10;
-var scl = 1;
-var newPlanet = false;
-var planetSize = 0;
-var dt = 1;
-var stopped = false;
-var damp = 1;
-var history;
-var history_lenght = 100;
-
 var p1 = {
   name: "Sun",
   x:  window.innerWidth / 2,
@@ -15,7 +5,7 @@ var p1 = {
   vx: 0,
   vy: 0,
   r: 20,
-  c: 'red'
+  c: 'yellow'
 };
 
 var p2 = {
@@ -24,18 +14,18 @@ var p2 = {
   y:  window.innerHeight / 2 + 50,
   vx: 5.5,
   vy: 0,
-  r: 1,
-  c: 'red'
+  r: 2,
+  c: 'orange'
 };
 
 var p3 = {
   name: "Earth",
   x:  window.innerWidth / 2,
-  y:  window.innerHeight / 2 - 350,
-  vx: -1,
+  y:  window.innerHeight / 2 - 200,
+  vx: -2,
   vy: 0,
   r: 5,
-  c: 'yellow'
+  c: 'green'
 };
 
 var p4 = {
@@ -45,41 +35,117 @@ var p4 = {
   vx: 0,
   vy: -1.5,
   r: 3,
-  c: 255
+  c: "red"
 };
 
 var p5 = {
   name: "Comet",
-  x:  window.innerWidth / 2 - 30,
+  x:  window.innerWidth / 2 - 200,
   y:  window.innerHeight / 2,
   vx: 0,
-  vy: 7,
+  vy: 2,
   r: 3,
-  c: 255
+  c: "black"
 };
 
-
-
+var g;
+var scl = 1;
+var newPlanet = false;
+var planetSize = 0;
+var dt = 1;
+var stopped = false;
+var damp = 1;
+var history_lenght = 20;
+var pg;
+var n_planets;
 var ps = [p1, p2, p3, p4, p5];
+
+var drawTrajectories = true;
+var n_planets;
+var gSlider, tSlider, trajButton, pButton, stopButton;
+
+var stats;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   frameRate(60);
-  history = [[]];
-  //gui = createGui('p5.gui');
-  //gui.addGlobals('g', 'dt');
 
-  //noLoop();
+  stats = createGraphics(200, 200);
+  stats.background(200);
+
+  gSlider = createSlider(0, 1, 0.1, 0.01);
+  tSlider = createSlider(0, 10, 1, 0.1);
+  trajButton = createButton("Draw trajectories");
+  pButton = createButton("Add Planet");
+  stopButton = createButton("Stop");
+
+  gSlider.position(20, 50);
+  tSlider.position(20, 90);
+  trajButton.position(20, 130);
+  pButton.position(20, 160);
+  stopButton.position(20, 190);
+
+  trajButton.mousePressed(switchTrajectories);
+  pButton.mousePressed(addPlanet);
+  stopButton.mousePressed(stopSimulation);
+
+  background(255);
 }
 
 function draw(){
 
-  background(1);
+  n_planets = ps.length;
 
-  for(var i = 0; i < ps.length; i++){
+  if(drawTrajectories){
+    background(255);
+  }
+
+  stats.resizeCanvas(200, n_planets * 40)
+  stats.background(255);
+
+  for(i = 1; i < n_planets; i++){
+
+    p1 = ps[i];
+    p2 = ps[0];
+
+    var r = Math.sqrt(pow((p1.x - p2.x),2) + pow((p1.y - p2.y), 2));
+    var potential = g * pow(p1.r, 3)  * pow(p2.r, 3)  / r;
+    potential = g * r * pow(ps[i].r, 3) / 50;
+
+    var kinetic = 5 * (pow(ps[i].vx, 2) + pow(ps[i].vy, 2));
+
+    stats.fill(ps[i].c);
+    stats.text(ps[i].name, 5, 20 + (i - 1) * 40);
+
+    stats.fill("green");
+    stats.rect(70, 5 + (i - 1) * 40, r / 10, 5);
+
+    stats.fill("orange");
+    stats.rect(70, 10 + (i - 1) * 40, kinetic, 5);
+
+
+  }
+
+  image(stats, windowWidth - stats.width - 50, 0);
+
+
+  fill(255);
+  rect(150, 3, 200, 68);
+  fill(0);
+  textSize(20);
+  text("Gravity: " + String(g), gSlider.x + gSlider.width + 5, gSlider.y - 25);
+  text("Simulation speed: " + String(dt), tSlider.x + tSlider.width + 5, tSlider.y - 25);
+
+  g = gSlider.value();
+  dt = tSlider.value();
+
+
+
+
+  for(var i = 0; i < n_planets; i++){
     fx = 0;
     fy = 0;
-    for(var j = 0; j < ps.length; j++){
+    for(var j = 0; j < n_planets; j++){
       if(j != i){
         forces = f(ps[i], ps[j]);
         fx += forces[0];
@@ -93,14 +159,12 @@ function draw(){
 
   }
 
-  for(i = 0; i < ps.length; i++){
+  for(i = 0; i < n_planets; i++){
     //ps[i].x += ps[i].vx * dt;
 
-    history[frameCount - 1 % history_lenght] = ps;
 
     ps[i].y += ps[i].vy * dt;
     ps[i].x += ps[i].vx * dt;
-
     // if((ps[i].y < ps[i].r / 2.0) || (ps[i].y > windowHeight - ps[i].r / 2.0)){
     //   ps[i].vy = -ps[i].vy
     // }
@@ -118,8 +182,10 @@ function draw(){
   ps[0].y = windowHeight / 2;
   ps[0].x = windowWidth / 2;
 
-  for(i = 0; i < ps.length - 1; i++){
-    for(j = i + 1; j < ps.length; j++){
+
+
+  for(i = 0; i < n_planets - 1; i++){
+    for(j = i + 1; j < n_planets; j++){
       var r = Math.sqrt(pow(ps[i].x - ps[j].x, 2) + pow(ps[i].y - ps[j].y, 2));
       if(r < (ps[i].r + ps[j].r) / 2){
         var vx = (ps[i].vx * pow(ps[i].r, 3) + ps[j].vx * pow(ps[j].r, 3)) / (pow(ps[i].r, 3) + pow(ps[j].r, 3));
@@ -133,39 +199,48 @@ function draw(){
     }
   }
 
-  console.log(history[0][0])
   //DRAW PLANETS
-  for(i = 0; i < ps.length; i++){
+  for(i = 0; i < n_planets; i++){
     fill(ps[i].c);
     //stroke(ps[i].c);
-    ellipse(ps[i].x, ps[i].y, ps[i].r, ps[i].r);
-    text(ps[i].name, ps[i].x + ps[i].r, ps[i].y);
-
-    for(j = 0; j < history.length; j++){
-      ellipse(history[j][i].x, history[j][i].y, history[j][i].r);
-    }
+    ellipse(ps[i].x, ps[i].y, ps[i].r);
+    fill(0);
+    //text(ps[i].name, ps[i].x + ps[i].r, ps[i].y);
   }
 
   //ADD NEW PLANETS
-  if(mouseIsPressed){
-    newPlanet = true;
-    planetSize += 1;
-    ellipse(mouseX, mouseY, planetSize, planetSize * scl);
-  }else if(newPlanet){
-    ps.push({
-      name: "Planet " + String(ps.length),
-      x: mouseX,
-      y: mouseY,
-      vx: (random() - 0.5) * 3,
-      vy: (random() - 0.5) * 3,
-      r: planetSize,
-      c: color(random()*255, random()*255, random()*255)
-    });
-    newPlanet = false;
-    planetSize = 0;
-  }
+  // if(mouseIsPressed){
+  //   newPlanet = true;
+  //   planetSize += 1;
+  //   ellipse(mouseX, mouseY, planetSize, planetSize * scl);
+  // }else if(newPlanet){
+  //   ps.push({
+  //     name: "Planet " + String(n_planets),
+  //     x: mouseX,
+  //     y: mouseY,
+  //     vx: (random() - 0.5) * 3,
+  //     vy: (random() - 0.5) * 3,
+  //     r: planetSize,
+  //     c: color(random()*255, random()*255, random()*255)
+  //   });
+  //   newPlanet = false;
+  //   planetSize = 0;
+  // }
 
 }
+
+function addPlanet(){
+  ps.push({
+    name: "Planet " + String(n_planets),
+         x: random() * windowWidth,
+         y: random() * windowHeight,
+         vx: (random() - 0.5) * 3,
+         vy: (random() - 0.5) * 3,
+         r: random() * 5,
+         c: color(random()*255, random()*255, random()*255)
+       });
+  }
+
 
 function f(p1, p2){
   var r = Math.sqrt(pow((p1.x - p2.x),2) + pow((p1.y - p2.y), 2));
@@ -190,28 +265,29 @@ function f(p1, p2){
   return [fx, fy];
 }
 
-function eat(p1, p2){
-  var r = Math.sqrt((p1.x - p2.x)^2 + (p1.y - p2.y)^2);
-  //console.log(r);
-  //console.log(p1.r);
-  //console.log((r < (p1.r * scl / 2)) && (p1.r > p2.r));
-  if(((r < (p1.r * scl / 2)) && (p1.r > p2.r))){
-    return false;
-  }else{
-    return true;
-  }
-
-  function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
-  }
-
-  function keyPressed(){
-    if(keyCode === UP_ARROW && !stopped){
-      noLoop();
-      stopped = true;
-    }else if(keyCode === UP_ARROW && stopped){
-      loop();
-      stopped = false;
+function switchTrajectories(){
+    if(drawTrajectories){
+      drawTrajectories = false;
+      trajButton.html("Hide trajectories");
+    }else{
+      drawTrajectories = true;
+      trajButton.html("Draw trajectories");
     }
+}
+
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+function stopSimulation(){
+  if(stop){
+    loop();
+    stop = false;
+    stopButton.html("Stop");
+  }else{
+    noLoop();
+    stop = true;
+    stopButton.html("Start");
   }
 }
