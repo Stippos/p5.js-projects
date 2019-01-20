@@ -65,6 +65,7 @@ function draw() {
 
     fill("black")
     textSize(20);
+    text("Arrow keys to move", width / 2, height / 2 + 70);
     text("Press ENTER to start", width / 2, height / 2 + 100);
 
   }else if(!game_over){
